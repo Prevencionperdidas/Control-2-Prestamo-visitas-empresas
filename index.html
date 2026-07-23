@@ -78,6 +78,7 @@
   .field{margin-bottom:12px;}
   .field label{display:block;font-size:12px;font-weight:700;color:#555;margin-bottom:4px;}
   .field input, .field select{ width:100%;padding:9px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:14px; }
+  .field input[readonly]{background:#eef3f8;color:#444;cursor:not-allowed;}
   .tipo-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
   .tipo-btns button{ flex:1;min-width:140px;padding:12px;border:2px solid var(--ikea-blue);border-radius:8px; background:white;color:var(--ikea-blue);font-weight:700;cursor:pointer;font-size:13px; }
   .tipo-btns button.sel{background:var(--ikea-blue);color:white;}
@@ -92,6 +93,11 @@
 
   .aviso-box{ background:#FFF4CC;border:2px solid var(--ikea-yellow);border-radius:8px; padding:14px;margin-bottom:16px;font-size:13.5px;line-height:1.5; }
   .aviso-box b{color:var(--danger);}
+  .entrada-info{
+    margin-top:8px;padding:10px 12px;background:#EAF4EA;border:1.5px solid var(--ok);
+    border-radius:6px;font-size:13.5px;color:#1a1a1a;font-weight:600;
+  }
+  .entrada-info:empty{display:none;border:none;padding:0;margin:0;}
 
   .pending-list{display:flex;flex-direction:column;gap:10px;}
   .pend-item{ background:white;border-radius:8px;padding:12px 14px;display:flex; justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px; box-shadow:0 1px 3px rgba(0,0,0,.1);border-left:5px solid var(--ikea-yellow); }
@@ -260,10 +266,15 @@
         <div class="field"><label>Nombre y Apellido</label><input type="text" id="VISITA_nombre"></div>
         <div class="field"><label>RUT</label><input type="text" id="VISITA_rut" placeholder="12345678-9"></div>
       </div>
-      <div class="row2">
+      <div id="VISITA_datosEntrega">
+        <div class="row2">
+          <div class="field"><label>Nombre y Apellido</label><input type="text" id="VISITA_nombre"></div>
+          <div class="field"><label>RUT</label><input type="text" id="VISITA_rut" placeholder="12345678-9"></div>
+        </div>
         <div class="field"><label>Quien Recibe</label><input type="text" id="VISITA_referencia"></div>
-        <div class="field"><label>Credencial de Visita</label><select id="VISITA_credencial" required></select></div>
       </div>
+      <div class="field"><label>Credencial de Visita</label><select id="VISITA_credencial" required onchange="showEntradaInfo('VISITA')"></select></div>
+      <div class="entrada-info" id="VISITA_entradaInfo"></div>
       <button type="submit" class="submit-btn" id="VISITA_submitBtn">✔ Registrar Salida</button>
     </form>
 
@@ -274,11 +285,11 @@
         <button type="button" id="PRESTAMO_btnSalida" class="sel-salida" onclick="setMovimiento('PRESTAMO','SALIDA')">⬆ SALIDA (Entrega credencial)</button>
         <button type="button" id="PRESTAMO_btnEntrada" onclick="setMovimiento('PRESTAMO','ENTRADA')">⬇ ENTRADA (Retorno credencial)</button>
       </div>
-      <div class="row2">
-        <div class="field"><label>Nombre y Apellido</label><input type="text" id="PRESTAMO_nombre"></div>
-        <div class="field"><label>RUT</label><input type="text" id="PRESTAMO_rut" placeholder="12345678-9"></div>
-      </div>
-      <div class="row2">
+      <div id="PRESTAMO_datosEntrega">
+        <div class="row2">
+          <div class="field"><label>Nombre y Apellido</label><input type="text" id="PRESTAMO_nombre"></div>
+          <div class="field"><label>RUT</label><input type="text" id="PRESTAMO_rut" placeholder="12345678-9"></div>
+        </div>
         <div class="field"><label>Empresa</label>
           <select id="PRESTAMO_empresa">
             <option value="IKEA">IKEA</option>
@@ -288,9 +299,10 @@
             <option value="OTRA">OTRA (ESPECIFICAR)</option>
           </select>
         </div>
-        <div class="field"><label>N° Credencial Préstamo</label><select id="PRESTAMO_credencial" required></select></div>
+        <div class="field hidden" id="PRESTAMO_empresaOtraWrap"><label>Especifique Empresa</label><input type="text" id="PRESTAMO_empresaOtra"></div>
       </div>
-      <div class="field hidden" id="PRESTAMO_empresaOtraWrap"><label>Especifique Empresa</label><input type="text" id="PRESTAMO_empresaOtra"></div>
+      <div class="field"><label>N° Credencial Préstamo</label><select id="PRESTAMO_credencial" required onchange="showEntradaInfo('PRESTAMO')"></select></div>
+      <div class="entrada-info" id="PRESTAMO_entradaInfo"></div>
       <button type="submit" class="submit-btn" id="PRESTAMO_submitBtn">✔ Registrar Salida</button>
     </form>
 
@@ -301,15 +313,18 @@
         <button type="button" id="CONTRATISTA_btnSalida" class="sel-salida" onclick="setMovimiento('CONTRATISTA','SALIDA')">⬆ SALIDA (Entrega credencial)</button>
         <button type="button" id="CONTRATISTA_btnEntrada" onclick="setMovimiento('CONTRATISTA','ENTRADA')">⬇ ENTRADA (Retorno credencial)</button>
       </div>
-      <div class="row2">
-        <div class="field"><label>Nombre y Apellido</label><input type="text" id="CONTRATISTA_nombre"></div>
-        <div class="field"><label>RUT</label><input type="text" id="CONTRATISTA_rut" placeholder="12345678-9"></div>
+      <div id="CONTRATISTA_datosEntrega">
+        <div class="row2">
+          <div class="field"><label>Nombre y Apellido</label><input type="text" id="CONTRATISTA_nombre"></div>
+          <div class="field"><label>RUT</label><input type="text" id="CONTRATISTA_rut" placeholder="12345678-9"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>Nombre de la Empresa Externa</label><input type="text" id="CONTRATISTA_empresa"></div>
+          <div class="field"><label>Persona Quien Recibe</label><input type="text" id="CONTRATISTA_referencia"></div>
+        </div>
       </div>
-      <div class="row2">
-        <div class="field"><label>Nombre de la Empresa Externa</label><input type="text" id="CONTRATISTA_empresa"></div>
-        <div class="field"><label>Persona Quien Recibe</label><input type="text" id="CONTRATISTA_referencia"></div>
-      </div>
-      <div class="field"><label>N° Credencial</label><select id="CONTRATISTA_credencial" required></select></div>
+      <div class="field"><label>N° Credencial</label><select id="CONTRATISTA_credencial" required onchange="showEntradaInfo('CONTRATISTA')"></select></div>
+      <div class="entrada-info" id="CONTRATISTA_entradaInfo"></div>
       <button type="submit" class="submit-btn" id="CONTRATISTA_submitBtn">✔ Registrar Salida</button>
     </form>
 
@@ -320,14 +335,15 @@
         <button type="button" id="ONBOARDING_btnSalida" class="sel-salida" onclick="setMovimiento('ONBOARDING','SALIDA')">⬆ SALIDA (Entrega credencial)</button>
         <button type="button" id="ONBOARDING_btnEntrada" onclick="setMovimiento('ONBOARDING','ENTRADA')">⬇ ENTRADA (Retorno credencial)</button>
       </div>
-      <div class="row2">
-        <div class="field"><label>Nombre y Apellido</label><input type="text" id="ONBOARDING_nombre"></div>
-        <div class="field"><label>RUT</label><input type="text" id="ONBOARDING_rut" placeholder="12345678-9"></div>
-      </div>
-      <div class="row2">
+      <div id="ONBOARDING_datosEntrega">
+        <div class="row2">
+          <div class="field"><label>Nombre y Apellido</label><input type="text" id="ONBOARDING_nombre"></div>
+          <div class="field"><label>RUT</label><input type="text" id="ONBOARDING_rut" placeholder="12345678-9"></div>
+        </div>
         <div class="field"><label>Empresa</label><input type="text" id="ONBOARDING_empresa"></div>
-        <div class="field"><label>N° Credencial</label><select id="ONBOARDING_credencial" required></select></div>
       </div>
+      <div class="field"><label>N° Credencial</label><select id="ONBOARDING_credencial" required onchange="showEntradaInfo('ONBOARDING')"></select></div>
+      <div class="entrada-info" id="ONBOARDING_entradaInfo"></div>
       <button type="submit" class="submit-btn" id="ONBOARDING_submitBtn">✔ Registrar Salida</button>
     </form>
   </div>
@@ -440,14 +456,16 @@ function setMovimiento(tipo, mov){
   movimientoState[tipo] = mov;
   document.getElementById(tipo+'_btnSalida').classList.toggle('sel-salida', mov==='SALIDA');
   document.getElementById(tipo+'_btnEntrada').classList.toggle('sel-entrada', mov==='ENTRADA');
-  const nombreReq = mov==='SALIDA';
-  const nombreEl = document.getElementById(tipo+'_nombre');
-  const rutEl = document.getElementById(tipo+'_rut');
-  if(nombreEl) nombreEl.required = nombreReq;
-  if(rutEl) rutEl.required = nombreReq;
+  const datosEntrega = document.getElementById(tipo+'_datosEntrega');
+  datosEntrega.classList.toggle('hidden', mov==='ENTRADA');
+  if(mov==='ENTRADA'){
+    datosEntrega.querySelectorAll('input').forEach(el=>el.value='');
+    datosEntrega.querySelectorAll('select').forEach(el=>{ el.selectedIndex = 0; });
+  }
   const btn = document.getElementById(tipo+'_submitBtn');
   if(btn) btn.textContent = mov==='SALIDA' ? '✔ Registrar Salida' : '↩ Registrar Entrada (Retorno)';
   refreshCredDropdowns();
+  showEntradaInfo(tipo);
 }
 
 /* ================= CREDENCIAL STATUS / DROPDOWNS ================= */
@@ -482,6 +500,25 @@ function refreshCredDropdowns(){
     const el = document.getElementById(tipo+'_credencial');
     if(el) buildCredOptions(tipo, el, movimientoState[tipo]==='ENTRADA');
   });
+}
+
+/* En modo ENTRADA los campos de nombre/rut/empresa quedan ocultos: se asume que
+   devuelve la credencial la misma persona responsable a la que se le entregó,
+   así que esos datos se toman directamente del registro pendiente al enviar.
+   Esta función solo muestra en pantalla, a modo de confirmación, quién la retiró. */
+function showEntradaInfo(tipo){
+  const infoEl = document.getElementById(tipo+'_entradaInfo');
+  if(!infoEl) return;
+  if(movimientoState[tipo] !== 'ENTRADA'){ infoEl.textContent=''; return; }
+  const cred = document.getElementById(tipo+'_credencial').value;
+  if(!cred){ infoEl.textContent=''; return; }
+  const pendiente = registros.find(r=>r.tipo===tipo && r.credencial===cred && r.estado==='PENDIENTE');
+  if(!pendiente){ infoEl.textContent = '⚠ No hay una salida pendiente registrada para esta credencial.'; return; }
+  const partes = ['✔ Devuelve: ' + (pendiente.nombre || 'SIN NOMBRE')];
+  if(pendiente.rut) partes.push('RUT ' + pendiente.rut);
+  if(pendiente.empresa) partes.push(pendiente.empresa);
+  if(pendiente.referencia) partes.push(tipo==='VISITA' ? 'Recibió: '+pendiente.referencia : 'Ref: '+pendiente.referencia);
+  infoEl.textContent = partes.join(' — ');
 }
 
 /* ================= GENERIC SUBMIT ================= */

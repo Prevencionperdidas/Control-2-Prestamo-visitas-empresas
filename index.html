@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security | Control Credenciales IKEA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ikea-blue:#0058A3;
+    --ikea-blue-dark:#003D73;
+    --ikea-yellow:#FFDB00;
+    --panel-orange-bg:#FBC26A;
+    --bg:#eef1f5;
+    --danger:#C0392B;
+    --ok:#1E8449;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Segoe UI', Arial, sans-serif; background:var(--bg); color:#1a1a1a; }
+  input, select{ text-transform:uppercase; }
+  input::placeholder{ text-transform:none; }
+
+  #loginScreen{ position:fixed;inset:0;background:var(--ikea-blue); display:flex;align-items:center;justify-content:center;z-index:999; }
+  .login-box{ background:white;border-radius:12px;padding:36px 32px;width:300px; text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.3); }
+  .login-box h2{color:var(--ikea-blue);margin-top:0;}
+  .login-box input{ width:100%;padding:12px;font-size:20px;text-align:center; letter-spacing:6px;border:2px solid #ccc;border-radius:8px;margin:12px 0; }
+  .login-box button{ width:100%;padding:12px;background:var(--ikea-yellow);border:none; border-radius:8px;font-weight:bold;font-size:15px;cursor:pointer; }
+  .login-error{color:var(--danger);font-size:13px;min-height:18px;}
+
+  header{ background:var(--ikea-blue);color:white;padding:14px 20px; display:flex;align-items:center;gap:16px;flex-wrap:wrap; }
+  .brand{font-size:22px;font-weight:700;letter-spacing:.5px;}
+  .flag{width:26px;height:18px;background:#D52B1E;display:inline-block;border-radius:2px;margin-right:6px;vertical-align:middle;}
+  header .daterange{ background:white;color:#333;border-radius:6px;padding:8px 14px; display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px; }
+  header .daterange input{border:none;font-weight:600;color:#333;width:110px;text-transform:none;}
+  .title-banner{ background:var(--ikea-yellow);color:#111;font-weight:800;font-size:17px; padding:10px 20px;border-radius:6px;flex:1;text-align:center;min-width:280px; }
+  .ikea-logo{ background:var(--ikea-yellow);color:var(--ikea-blue);font-weight:900; padding:6px 14px;border-radius:6px;font-size:18px;font-style:italic; border:3px solid var(--ikea-blue-dark); }
+
+  nav{background:var(--ikea-blue-dark);display:flex;gap:4px;padding:0 20px;}
+  nav button{ background:transparent;border:none;color:#cfe0f0;padding:12px 18px; font-size:14px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent; }
+  nav button.active{color:white;border-bottom:3px solid var(--ikea-yellow);}
+
+  main{padding:18px;}
+  .hidden{display:none !important;}
+
+  .dash-grid{ display:grid;grid-template-columns:1.6fr 1fr 2.2fr;gap:14px;align-items:start; }
+  @media(max-width:1100px){ .dash-grid{grid-template-columns:1fr;} }
+
+  .card{ background:white;border-radius:10px;overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+  .card-title{ background:var(--ikea-blue);color:white;font-weight:700;font-size:13px; padding:9px 14px;text-align:center; }
+  .card-body{padding:12px;}
+
+  .orange-panel{ background:var(--panel-orange-bg);border-radius:14px;padding:14px; }
+  .orange-panel > .section-title{ background:var(--ikea-blue);color:white;font-weight:800;text-align:center; padding:8px;border-radius:6px;font-size:15px;margin-bottom:10px; }
+  .subsection{ background:var(--ikea-blue);color:white;font-weight:700;text-align:center; padding:6px;border-radius:6px 6px 0 0;font-size:13px;margin-top:16px; }
+  .subsection:first-of-type{margin-top:0;}
+  .subwrap{background:white;border-radius:0 0 8px 8px;padding:10px;display:flex;gap:14px;flex-wrap:wrap;}
+  .subwrap canvas{max-width:160px;max-height:150px;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table th{ background:#f0f0f0;text-align:left;padding:6px 8px;border-bottom:2px solid #ddd; text-transform:uppercase;font-size:11px;color:#444; }
+  table td{padding:6px 8px;border-bottom:1px solid #eee;}
+  table tr:nth-child(even){background:#fafafa;}
+  .no-data{color:#888;text-align:center;padding:14px;font-style:italic;}
+
+  .legend-row{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0;}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block;}
+
+  .banner-importante{ margin-top:14px;border-radius:10px;overflow:hidden;border:4px solid #111; }
+  .banner-stripe{ background:repeating-linear-gradient(45deg,#111,#111 12px,var(--ikea-yellow) 12px,var(--ikea-yellow) 24px); height:14px; }
+  .banner-content{background:var(--ikea-blue);color:white;text-align:center;padding:16px 10px;}
+  .banner-content h3{color:#E63946;margin:0 0 8px;font-size:20px;}
+  .banner-content p{margin:4px 0;font-weight:600;line-height:1.4;font-size:14px;}
+  .banner-content .obligatorio{color:var(--ikea-yellow);font-weight:900;font-size:20px;margin-top:10px;}
+  .banner-footer{background:var(--ikea-yellow);color:var(--danger);font-weight:900;text-align:center;padding:8px;font-size:18px;}
+
+  .form-card{ background:white;border-radius:10px;padding:20px;max-width:640px; box-shadow:0 1px 4px rgba(0,0,0,.12);margin-bottom:18px; }
+  .form-card h3{margin-top:0;color:var(--ikea-blue);}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;font-weight:700;color:#555;margin-bottom:4px;}
+  .field input, .field select{ width:100%;padding:9px 10px;border:1.5px solid #ccc;border-radius:6px;font-size:14px; }
+  .tipo-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .tipo-btns button{ flex:1;min-width:140px;padding:12px;border:2px solid var(--ikea-blue);border-radius:8px; background:white;color:var(--ikea-blue);font-weight:700;cursor:pointer;font-size:13px; }
+  .tipo-btns button.sel{background:var(--ikea-blue);color:white;}
+  .submit-btn{ background:var(--ikea-yellow);border:none;padding:12px 22px;border-radius:8px; font-weight:800;cursor:pointer;font-size:14px; }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:600px){.row2{grid-template-columns:1fr;}}
+
+  .mov-toggle{display:flex;gap:10px;margin-bottom:14px;}
+  .mov-toggle button{ flex:1;padding:12px;border:2px solid var(--ikea-blue-dark);border-radius:8px; background:#f4f7fb;font-weight:800;cursor:pointer;font-size:14px;color:var(--ikea-blue-dark); }
+  .mov-toggle button.sel-salida{background:var(--danger);color:white;border-color:var(--danger);}
+  .mov-toggle button.sel-entrada{background:var(--ok);color:white;border-color:var(--ok);}
+
+  .aviso-box{ background:#FFF4CC;border:2px solid var(--ikea-yellow);border-radius:8px; padding:14px;margin-bottom:16px;font-size:13.5px;line-height:1.5; }
+  .aviso-box b{color:var(--danger);}
+
+  .pending-list{display:flex;flex-direction:column;gap:10px;}
+  .pend-item{ background:white;border-radius:8px;padding:12px 14px;display:flex; justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px; box-shadow:0 1px 3px rgba(0,0,0,.1);border-left:5px solid var(--ikea-yellow); }
+  .pend-item .info b{color:var(--ikea-blue);}
+  .pend-item .info div{font-size:13px;margin:2px 0;}
+  .return-btn{ background:var(--ok);color:white;border:none;padding:9px 16px;border-radius:6px; font-weight:700;cursor:pointer; }
+  .del-btn{ background:none;border:none;color:var(--danger);cursor:pointer;font-size:18px; padding:4px 8px; }
+  .toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+  .toolbar button{ background:var(--ikea-blue);color:white;border:none;padding:9px 16px; border-radius:6px;font-weight:700;cursor:pointer;font-size:13px; }
+  .empty-state{text-align:center;color:#888;padding:30px;font-style:italic;}
+  .toast{ position:fixed;bottom:20px;right:20px;background:var(--ikea-blue);color:white; padding:12px 20px;border-radius:8px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.3); z-index:1000;opacity:0;transition:opacity .3s;pointer-events:none; }
+  .toast.show{opacity:1;}
+  .cred-badge{font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--ikea-yellow);}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>🔒 Security</h2>
+    <p style="font-size:13px;color:#666;">Ingrese PIN de acceso</p>
+    <input type="password" id="pinInput" maxlength="4" inputmode="numeric" placeholder="••••">
+    <div class="login-error" id="loginError"></div>
+    <button onclick="checkPin()">Ingresar</button>
+  </div>
+</div>
+
+<header>
+  <div class="brand"><span class="flag"></span>Security</div>
+  <div class="daterange">
+    📅 <input type="date" id="rangeStart"> — <input type="date" id="rangeEnd">
+    <button onclick="renderDashboard()" style="border:none;background:var(--ikea-blue);color:white;border-radius:4px;padding:6px 10px;cursor:pointer;font-weight:700;">Ver</button>
+  </div>
+  <div class="title-banner">Control Credenciales Visitas / Prestamos / Onboarding / Empresas Contratistas</div>
+  <div class="ikea-logo">IKEA</div>
+</header>
+
+<nav>
+  <button class="navbtn active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="navbtn" data-tab="registrar" onclick="switchTab('registrar')">➕ Registrar</button>
+  <button class="navbtn" data-tab="pendientes" onclick="switchTab('pendientes')">⏳ Pendientes por Retorno</button>
+</nav>
+
+<main>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="tab-dashboard">
+  <div class="toolbar">
+    <button onclick="exportCSV()">⬇️ Enlace Data Base (Exportar CSV)</button>
+    <button onclick="configurarSheetUrl()">⚙️ Configurar Google Sheet</button>
+    <span id="rangeLabel" style="font-weight:700;color:var(--ikea-blue-dark);"></span>
+  </div>
+
+  <div class="dash-grid">
+    <div>
+      <div class="card">
+        <div class="card-title">Catergoria por motivo</div>
+        <div class="card-body" style="display:flex;gap:10px;align-items:center;">
+          <canvas id="pieMotivo" width="160" height="160"></canvas>
+          <div id="pieLegend"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px;">
+        <div class="card-title">Conteo por categorización</div>
+        <div class="card-body">
+          <table id="tblConteo"><thead><tr><th>4 principales - Indique motivo</th><th>Total conteo</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+      <div class="banner-importante">
+        <div class="banner-stripe"></div>
+        <div class="banner-content">
+          <h3>⚠ IMPORTANTE</h3>
+          <p>TODA VISITA DEBE RECIBIR INDUCCIÓN DE<br>PARTE DEL EQUIPO DE PREVENCIÓN DE<br>PÉRDIDAS O RIESGOS</p>
+          <div class="obligatorio">¡OBLIGATORIO!</div>
+        </div>
+        <div class="banner-stripe"></div>
+        <div class="banner-footer">IMPORTANTE</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-title">TOP Empresas X solicitud</div>
+        <div class="card-body"><canvas id="barEmpresas" height="220"></canvas></div>
+      </div>
+      <div class="card" style="margin-top:14px;">
+        <div class="card-title">TOP Personal con recurrencia</div>
+        <div class="card-body" style="max-height:340px;overflow:auto;">
+          <table id="tblRecurrencia"><thead><tr><th>RUT</th><th>Nombre y Apellido</th><th>Empresa</th><th>Record Co...</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="orange-panel">
+      <div class="section-title">DATA ACTUALIZADA DEL DÍA (HOY)</div>
+
+      <div class="subsection">PRESTAMOS DEL DIA</div>
+      <div class="subwrap">
+        <canvas id="barPrestamosDia" width="150" height="150"></canvas>
+        <div style="flex:1;overflow:auto;">
+          <table id="tblPrestamosDia">
+            <thead><tr><th>Nombre y Apellido</th><th>RUT</th><th>Empresa</th><th>Credencial N°</th><th>Salida</th><th>Entrada</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">VISITAS DEL DIA</div>
+      <div class="subwrap">
+        <canvas id="barVisitasDia" width="150" height="150"></canvas>
+        <div style="flex:1;overflow:auto;">
+          <table id="tblVisitasDia">
+            <thead><tr><th>Nombre y Apellido</th><th>RUT</th><th>Quien Recibe</th><th>Credencial N°</th><th>Salida</th><th>Entrada</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">EMPRESAS CONTRATISTAS DEL DIA</div>
+      <div class="subwrap">
+        <canvas id="barContratistasDia" width="150" height="150"></canvas>
+        <div style="flex:1;overflow:auto;">
+          <table id="tblContratistasDia">
+            <thead><tr><th>Nombre y Apellido</th><th>RUT</th><th>Empresa Externa</th><th>Persona Recibe</th><th>Credencial N°</th><th>Salida</th><th>Entrada</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">ONBOARDING DEL DIA</div>
+      <div class="subwrap">
+        <canvas id="barOnboardingDia" width="150" height="150"></canvas>
+        <div style="flex:1;overflow:auto;">
+          <table id="tblOnboardingDia">
+            <thead><tr><th>Nombre y Apellido</th><th>RUT</th><th>Empresa</th><th>Credencial N°</th><th>Salida</th><th>Entrada</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REGISTRAR ============ -->
+<div id="tab-registrar" class="hidden">
+  <div class="form-card">
+    <h3>Nuevo Registro</h3>
+    <div class="tipo-btns">
+      <button class="sel" data-tipo="VISITA" onclick="selTipo('VISITA')">Visita</button>
+      <button data-tipo="PRESTAMO" onclick="selTipo('PRESTAMO')">Préstamo por Olvido</button>
+      <button data-tipo="CONTRATISTA" onclick="selTipo('CONTRATISTA')">Empresa Contratista</button>
+      <button data-tipo="ONBOARDING" onclick="selTipo('ONBOARDING')">Onboarding</button>
+    </div>
+
+    <!-- ---- VISITA FORM ---- -->
+    <form id="formVISITA" class="reg-form" onsubmit="return submitForm(event,'VISITA')">
+      <div class="aviso-box">
+        <b>⚠ RECORDATORIO IMPORTANTE:</b> Toda visita debe recibir inducción de parte del equipo de Prevención de Pérdidas o Riesgos antes de ingresar. ¡Es obligatorio!
+      </div>
+      <label style="font-size:12px;font-weight:700;color:#555;">Indicar si es Entrada o Salida</label>
+      <div class="mov-toggle">
+        <button type="button" id="VISITA_btnSalida" class="sel-salida" onclick="setMovimiento('VISITA','SALIDA')">⬆ SALIDA (Ingreso / entrega credencial)</button>
+        <button type="button" id="VISITA_btnEntrada" onclick="setMovimiento('VISITA','ENTRADA')">⬇ ENTRADA (Retorno credencial)</button>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Nombre y Apellido</label><input type="text" id="VISITA_nombre"></div>
+        <div class="field"><label>RUT</label><input type="text" id="VISITA_rut" placeholder="12345678-9"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Quien Recibe</label><input type="text" id="VISITA_referencia"></div>
+        <div class="field"><label>Credencial de Visita</label><select id="VISITA_credencial" required></select></div>
+      </div>
+      <button type="submit" class="submit-btn" id="VISITA_submitBtn">✔ Registrar Salida</button>
+    </form>
+
+    <!-- ---- PRESTAMO FORM ---- -->
+    <form id="formPRESTAMO" class="reg-form hidden" onsubmit="return submitForm(event,'PRESTAMO')">
+      <label style="font-size:12px;font-weight:700;color:#555;">Indicar si es Entrada o Salida</label>
+      <div class="mov-toggle">
+        <button type="button" id="PRESTAMO_btnSalida" class="sel-salida" onclick="setMovimiento('PRESTAMO','SALIDA')">⬆ SALIDA (Entrega credencial)</button>
+        <button type="button" id="PRESTAMO_btnEntrada" onclick="setMovimiento('PRESTAMO','ENTRADA')">⬇ ENTRADA (Retorno credencial)</button>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Nombre y Apellido</label><input type="text" id="PRESTAMO_nombre"></div>
+        <div class="field"><label>RUT</label><input type="text" id="PRESTAMO_rut" placeholder="12345678-9"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Empresa</label>
+          <select id="PRESTAMO_empresa">
+            <option value="IKEA">IKEA</option>
+            <option value="COLCHAGUA">COLCHAGUA</option>
+            <option value="GRUPO AMERICA">GRUPO AMERICA</option>
+            <option value="MAX GREDIG SERVICIOS">MAX GREDIG SERVICIOS</option>
+            <option value="OTRA">OTRA (ESPECIFICAR)</option>
+          </select>
+        </div>
+        <div class="field"><label>N° Credencial Préstamo</label><select id="PRESTAMO_credencial" required></select></div>
+      </div>
+      <div class="field hidden" id="PRESTAMO_empresaOtraWrap"><label>Especifique Empresa</label><input type="text" id="PRESTAMO_empresaOtra"></div>
+      <button type="submit" class="submit-btn" id="PRESTAMO_submitBtn">✔ Registrar Salida</button>
+    </form>
+
+    <!-- ---- CONTRATISTA FORM ---- -->
+    <form id="formCONTRATISTA" class="reg-form hidden" onsubmit="return submitForm(event,'CONTRATISTA')">
+      <label style="font-size:12px;font-weight:700;color:#555;">Indicar si es Entrada o Salida</label>
+      <div class="mov-toggle">
+        <button type="button" id="CONTRATISTA_btnSalida" class="sel-salida" onclick="setMovimiento('CONTRATISTA','SALIDA')">⬆ SALIDA (Entrega credencial)</button>
+        <button type="button" id="CONTRATISTA_btnEntrada" onclick="setMovimiento('CONTRATISTA','ENTRADA')">⬇ ENTRADA (Retorno credencial)</button>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Nombre y Apellido</label><input type="text" id="CONTRATISTA_nombre"></div>
+        <div class="field"><label>RUT</label><input type="text" id="CONTRATISTA_rut" placeholder="12345678-9"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Nombre de la Empresa Externa</label><input type="text" id="CONTRATISTA_empresa"></div>
+        <div class="field"><label>Persona Quien Recibe</label><input type="text" id="CONTRATISTA_referencia"></div>
+      </div>
+      <div class="field"><label>N° Credencial</label><select id="CONTRATISTA_credencial" required></select></div>
+      <button type="submit" class="submit-btn" id="CONTRATISTA_submitBtn">✔ Registrar Salida</button>
+    </form>
+
+    <!-- ---- ONBOARDING FORM ---- -->
+    <form id="formONBOARDING" class="reg-form hidden" onsubmit="return submitForm(event,'ONBOARDING')">
+      <label style="font-size:12px;font-weight:700;color:#555;">Indicar si es Entrada o Salida</label>
+      <div class="mov-toggle">
+        <button type="button" id="ONBOARDING_btnSalida" class="sel-salida" onclick="setMovimiento('ONBOARDING','SALIDA')">⬆ SALIDA (Entrega credencial)</button>
+        <button type="button" id="ONBOARDING_btnEntrada" onclick="setMovimiento('ONBOARDING','ENTRADA')">⬇ ENTRADA (Retorno credencial)</button>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Nombre y Apellido</label><input type="text" id="ONBOARDING_nombre"></div>
+        <div class="field"><label>RUT</label><input type="text" id="ONBOARDING_rut" placeholder="12345678-9"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Empresa</label><input type="text" id="ONBOARDING_empresa"></div>
+        <div class="field"><label>N° Credencial</label><select id="ONBOARDING_credencial" required></select></div>
+      </div>
+      <button type="submit" class="submit-btn" id="ONBOARDING_submitBtn">✔ Registrar Salida</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ PENDIENTES ============ -->
+<div id="tab-pendientes" class="hidden">
+  <div class="toolbar">
+    <b style="color:var(--ikea-blue-dark);">Credenciales / Accesos pendientes de retorno</b>
+  </div>
+  <div id="pendingList" class="pending-list"></div>
+</div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= DATA LAYER ================= */
+const STORAGE_KEY = 'ikea_credenciales_registros';
+const SHEET_URL_KEY = 'ikea_sheet_webapp_url';
+const PIN = '2108';
+let registros = [];
+let selectedTipo = 'VISITA';
+let movimientoState = {VISITA:'SALIDA', PRESTAMO:'SALIDA', CONTRATISTA:'SALIDA', ONBOARDING:'SALIDA'};
+
+// NOTA: el rango de credenciales de Onboarding (01-20) es un valor por defecto —
+// avísale a Claude/al desarrollo si el rango real es distinto para ajustarlo.
+const CRED_CONFIG = {
+  VISITA: {prefix:'VISITA N°', count:24},
+  PRESTAMO: {prefix:'PRESTAMO N°', count:16},
+  CONTRATISTA: {prefix:'CREDENCIAL N°', count:20},
+  ONBOARDING: {prefix:'CREDENCIAL N°', count:20}
+};
+const TIPO_LABEL = {PRESTAMO:'Préstamo por Olvido', VISITA:'Visita', ONBOARDING:'Onboarding', CONTRATISTA:'Empresa Contratista'};
+
+function load(){
+  try{ registros = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch(e){ registros = []; }
+}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(registros)); }
+function uid(){ return 'r' + Date.now() + Math.floor(Math.random()*1000); }
+function credLabel(prefix, n){ return prefix + String(n).padStart(2,'0'); }
+
+/* ================= GOOGLE SHEET SYNC ================= */
+function getSheetUrl(){ return (localStorage.getItem(SHEET_URL_KEY)||'').trim(); }
+
+function configurarSheetUrl(){
+  const actual = getSheetUrl();
+  const url = prompt('Pega la URL de tu Apps Script Web App (deployment):', actual);
+  if(url !== null){
+    localStorage.setItem(SHEET_URL_KEY, url.trim());
+    showToast(url.trim() ? '✔ URL de Google Sheet guardada' : 'Sincronización con Google Sheet desactivada');
+  }
+}
+
+function syncToSheet(params){
+  const base = getSheetUrl();
+  if(!base) return; // no configurado todavía
+  const qs = Object.keys(params).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(params[k]==null?'':params[k])).join('&');
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = base + (base.indexOf('?')>-1 ? '&' : '?') + qs;
+  document.body.appendChild(iframe);
+  setTimeout(()=>{ if(iframe.parentNode) iframe.parentNode.removeChild(iframe); }, 8000);
+}
+
+function syncRecord(r){
+  syncToSheet({
+    action:'upsert', id:r.id, tipo:r.tipo, nombre:r.nombre||'', rut:r.rut||'', empresa:r.empresa||'',
+    referencia:r.referencia||'', credencial:r.credencial||'', salidaTS:r.salidaTS||'', entradaTS:r.entradaTS||'', estado:r.estado||''
+  });
+}
+function syncDelete(id){ syncToSheet({ action:'delete', id }); }
+
+/* ================= LOGIN ================= */
+function checkPin(){
+  const val = document.getElementById('pinInput').value;
+  if(val === PIN){ document.getElementById('loginScreen').style.display='none'; }
+  else { document.getElementById('loginError').textContent = 'PIN incorrecto'; }
+}
+document.getElementById('pinInput').addEventListener('keydown', e=>{ if(e.key==='Enter') checkPin(); });
+
+/* ================= TABS ================= */
+function switchTab(tab){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`nav button[data-tab="${tab}"]`).classList.add('active');
+  ['dashboard','registrar','pendientes'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==tab);
+  });
+  if(tab==='dashboard') renderDashboard();
+  if(tab==='pendientes') renderPending();
+  if(tab==='registrar') refreshCredDropdowns();
+}
+
+/* ================= FORM TIPO SWITCH ================= */
+function selTipo(tipo){
+  selectedTipo = tipo;
+  document.querySelectorAll('.tipo-btns button').forEach(b=>b.classList.toggle('sel', b.dataset.tipo===tipo));
+  document.querySelectorAll('.reg-form').forEach(f=>f.classList.add('hidden'));
+  document.getElementById('form'+tipo).classList.remove('hidden');
+  refreshCredDropdowns();
+}
+
+document.getElementById('PRESTAMO_empresa').addEventListener('change', e=>{
+  document.getElementById('PRESTAMO_empresaOtraWrap').classList.toggle('hidden', e.target.value!=='OTRA');
+});
+
+function setMovimiento(tipo, mov){
+  movimientoState[tipo] = mov;
+  document.getElementById(tipo+'_btnSalida').classList.toggle('sel-salida', mov==='SALIDA');
+  document.getElementById(tipo+'_btnEntrada').classList.toggle('sel-entrada', mov==='ENTRADA');
+  const nombreReq = mov==='SALIDA';
+  const nombreEl = document.getElementById(tipo+'_nombre');
+  const rutEl = document.getElementById(tipo+'_rut');
+  if(nombreEl) nombreEl.required = nombreReq;
+  if(rutEl) rutEl.required = nombreReq;
+  const btn = document.getElementById(tipo+'_submitBtn');
+  if(btn) btn.textContent = mov==='SALIDA' ? '✔ Registrar Salida' : '↩ Registrar Entrada (Retorno)';
+  refreshCredDropdowns();
+}
+
+/* ================= CREDENCIAL STATUS / DROPDOWNS ================= */
+function credencialStatus(tipo, label){
+  const events = [];
+  registros.filter(r=>r.tipo===tipo && r.credencial===label).forEach(r=>{
+    if(r.salidaTS) events.push({t:new Date(r.salidaTS), mov:'SALIDA'});
+    if(r.entradaTS) events.push({t:new Date(r.entradaTS), mov:'ENTRADA'});
+  });
+  if(events.length===0) return 'DISPONIBLE';
+  events.sort((a,b)=>a.t-b.t);
+  return events[events.length-1].mov === 'SALIDA' ? 'EN USO' : 'DISPONIBLE';
+}
+
+function buildCredOptions(tipo, selectEl, onlyEnUso){
+  const cfg = CRED_CONFIG[tipo];
+  const prevVal = selectEl.value;
+  let html = '<option value="">Seleccione credencial</option>';
+  for(let i=1;i<=cfg.count;i++){
+    const label = credLabel(cfg.prefix, i);
+    const status = credencialStatus(tipo, label);
+    if(onlyEnUso && status!=='EN USO') continue;
+    const marker = status==='EN USO' ? ' 🔴 EN USO' : ' 🟢 DISPONIBLE';
+    html += `<option value="${label}">${label}${marker}</option>`;
+  }
+  selectEl.innerHTML = html;
+  if([...selectEl.options].some(o=>o.value===prevVal)) selectEl.value = prevVal;
+}
+
+function refreshCredDropdowns(){
+  ['VISITA','PRESTAMO','CONTRATISTA','ONBOARDING'].forEach(tipo=>{
+    const el = document.getElementById(tipo+'_credencial');
+    if(el) buildCredOptions(tipo, el, movimientoState[tipo]==='ENTRADA');
+  });
+}
+
+/* ================= GENERIC SUBMIT ================= */
+function submitForm(e, tipo){
+  e.preventDefault();
+  const cred = document.getElementById(tipo+'_credencial').value;
+  if(!cred){ alert('Seleccione una credencial'); return false; }
+
+  const nombre = (document.getElementById(tipo+'_nombre').value||'').toUpperCase().trim();
+  const rut = (document.getElementById(tipo+'_rut').value||'').toUpperCase().trim();
+  const referenciaEl = document.getElementById(tipo+'_referencia');
+  let empresa = '';
+  if(tipo==='PRESTAMO'){
+    empresa = document.getElementById('PRESTAMO_empresa').value;
+    if(empresa==='OTRA') empresa = (document.getElementById('PRESTAMO_empresaOtra').value||'').toUpperCase().trim() || 'OTRA';
+  } else {
+    const empresaEl = document.getElementById(tipo+'_empresa');
+    empresa = empresaEl ? (empresaEl.value||'').toUpperCase().trim() : '';
+  }
+  const referencia = referenciaEl ? (referenciaEl.value||'').toUpperCase().trim() : '';
+  const mov = movimientoState[tipo];
+
+  if(mov==='SALIDA'){
+    const nuevo = {
+      id: uid(), tipo, nombre, rut, empresa, referencia, credencial: cred,
+      salidaTS: new Date().toISOString(), entradaTS: null, estado:'PENDIENTE'
+    };
+    registros.push(nuevo);
+    syncRecord(nuevo);
+    showToast('⬆ Salida registrada — ' + TIPO_LABEL[tipo]);
+  } else {
+    const pendiente = registros.find(r=>r.tipo===tipo && r.credencial===cred && r.estado==='PENDIENTE');
+    if(pendiente){
+      pendiente.entradaTS = new Date().toISOString();
+      pendiente.estado = 'DEVUELTO';
+      syncRecord(pendiente);
+      showToast('↩ Retorno registrado — ' + TIPO_LABEL[tipo]);
+    } else {
+      const orphan = {
+        id: uid(), tipo, nombre: nombre || null, rut: rut || null, empresa, referencia,
+        credencial: cred, salidaTS: null, entradaTS: new Date().toISOString(), estado:'DEVUELTO'
+      };
+      registros.push(orphan);
+      syncRecord(orphan);
+      showToast('⚠ No había salida pendiente para esa credencial — se registró la entrada de todas formas');
+    }
+  }
+  save();
+  document.getElementById('form'+tipo).reset();
+  const otraWrap = document.getElementById('PRESTAMO_empresaOtraWrap');
+  if(otraWrap) otraWrap.classList.add('hidden');
+  setMovimiento(tipo, 'SALIDA');
+  refreshCredDropdowns();
+  switchTab('pendientes');
+  return false;
+}
+
+/* ================= PENDIENTES ================= */
+function refLabel(tipo){
+  if(tipo==='VISITA') return 'Quien recibe';
+  if(tipo==='CONTRATISTA') return 'Persona quien recibe';
+  return null;
+}
+
+function renderPending(){
+  const list = document.getElementById('pendingList');
+  const pend = registros.filter(r=>r.estado==='PENDIENTE').sort((a,b)=> new Date(b.salidaTS)-new Date(a.salidaTS));
+  if(pend.length===0){
+    list.innerHTML = '<div class="empty-state">No hay credenciales ni accesos pendientes de retorno 🎉</div>';
+    return;
+  }
+  list.innerHTML = pend.map(r=>{
+    const rl = refLabel(r.tipo);
+    return `
+    <div class="pend-item">
+      <div class="info">
+        <div><b>${r.nombre || '(sin nombre)'}</b> &nbsp;<span class="cred-badge">${TIPO_LABEL[r.tipo]}</span> &nbsp;<span class="cred-badge" style="background:#5B9BD5;color:white;">${r.credencial}</span></div>
+        <div>RUT: ${r.rut || '—'} ${r.empresa ? '&nbsp;|&nbsp; Empresa: ' + r.empresa : ''}</div>
+        ${rl ? `<div>${rl}: ${r.referencia || '—'}</div>` : ''}
+        <div>Entregado: ${new Date(r.salidaTS).toLocaleString('es-CL')}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="return-btn" onclick="registrarRetorno('${r.id}')">↩ Registrar Retorno</button>
+        <button class="del-btn" onclick="eliminarRegistro('${r.id}')" title="Eliminar">🗑</button>
+      </div>
+    </div>
+  `;}).join('');
+}
+
+function registrarRetorno(id){
+  const r = registros.find(x=>x.id===id);
+  if(!r) return;
+  r.entradaTS = new Date().toISOString();
+  r.estado = 'DEVUELTO';
+  save();
+  syncRecord(r);
+  renderPending();
+  showToast('↩ Retorno registrado correctamente');
+}
+
+function eliminarRegistro(id){
+  if(!confirm('¿Eliminar este registro?')) return;
+  registros = registros.filter(x=>x.id!==id);
+  save();
+  syncDelete(id);
+  renderPending();
+}
+
+/* ================= DASHBOARD ================= */
+let chartRefs = {};
+function destroyChart(key){ if(chartRefs[key]){ chartRefs[key].destroy(); delete chartRefs[key]; } }
+
+function inRange(rec, start, end){ const d = new Date(rec.salidaTS || rec.entradaTS); return d >= start && d <= end; }
+function isToday(rec){
+  const d = new Date(rec.salidaTS || rec.entradaTS);
+  const t = new Date();
+  return d.getFullYear()===t.getFullYear() && d.getMonth()===t.getMonth() && d.getDate()===t.getDate();
+}
+function fmtDateShort(d){ return d.toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}).replace('.',''); }
+
+function renderDashboard(){
+  let start = document.getElementById('rangeStart').value;
+  let end = document.getElementById('rangeEnd').value;
+  let startD, endD;
+  if(!start || !end){
+    endD = new Date(); endD.setHours(23,59,59,999);
+    startD = new Date(); startD.setDate(startD.getDate()-2); startD.setHours(0,0,0,0);
+  } else {
+    startD = new Date(start+'T00:00:00');
+    endD = new Date(end+'T23:59:59');
+  }
+  document.getElementById('rangeLabel').textContent = fmtDateShort(startD) + '  —  ' + fmtDateShort(endD);
+
+  const inWindow = registros.filter(r=>inRange(r, startD, endD));
+
+  const motivos = ['VISITA','PRESTAMO','ONBOARDING'];
+  const motivoLabels = {VISITA:'VISITA', PRESTAMO:'PRESTAMO POR OLVIDO', ONBOARDING:'ONBOARDING'};
+  const motivoColors = {VISITA:'#4A90D9', PRESTAMO:'#3EC6C6', ONBOARDING:'#E63982'};
+  const counts = motivos.map(m => inWindow.filter(r=>r.tipo===m).length);
+  const totalMotivo = counts.reduce((a,b)=>a+b,0) || 1;
+
+  destroyChart('pie');
+  chartRefs.pie = new Chart(document.getElementById('pieMotivo'), {
+    type:'pie',
+    data:{ labels:motivos.map(m=>motivoLabels[m]), datasets:[{ data:counts, backgroundColor:motivos.map(m=>motivoColors[m]) }] },
+    options:{ plugins:{legend:{display:false}} }
+  });
+  document.getElementById('pieLegend').innerHTML = motivos.map((m,i)=>`
+    <div class="legend-row"><span class="dot" style="background:${motivoColors[m]}"></span>${motivoLabels[m]}
+    <span style="color:#888;">(${Math.round(counts[i]/totalMotivo*100)}%)</span></div>`).join('');
+
+  const tblConteo = document.querySelector('#tblConteo tbody');
+  tblConteo.innerHTML = motivos.map((m,i)=>`<tr><td>${motivoLabels[m]}</td><td><b>${counts[i]}</b></td></tr>`).join('')
+    || '<tr><td colspan="2" class="no-data">No hay datos</td></tr>';
+
+  const empresaCount = {};
+  inWindow.forEach(r=>{ if(r.empresa){ empresaCount[r.empresa] = (empresaCount[r.empresa]||0)+1; } });
+  const topEmpresas = Object.entries(empresaCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  destroyChart('barEmp');
+  chartRefs.barEmp = new Chart(document.getElementById('barEmpresas'), {
+    type:'bar',
+    data:{ labels: topEmpresas.map(e=>e[0]), datasets:[{ label:'Solicitudes', data: topEmpresas.map(e=>e[1]), backgroundColor:'#5B9BD5' }] },
+    options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}} }
+  });
+
+  const rutGroups = {};
+  inWindow.forEach(r=>{
+    if(!r.rut) return;
+    rutGroups[r.rut] = rutGroups[r.rut] || {};
+    const key = r.nombre + '|' + (r.empresa||'');
+    rutGroups[r.rut][key] = (rutGroups[r.rut][key]||0)+1;
+  });
+  const recurrentRuts = Object.entries(rutGroups).filter(([rut,names])=>{
+    const total = Object.values(names).reduce((a,b)=>a+b,0);
+    return total > 1;
+  }).sort((a,b)=>{
+    const ta = Object.values(a[1]).reduce((x,y)=>x+y,0);
+    const tb = Object.values(b[1]).reduce((x,y)=>x+y,0);
+    return tb-ta;
+  });
+  const tblRec = document.querySelector('#tblRecurrencia tbody');
+  let recRows = [];
+  recurrentRuts.forEach(([rut, names])=>{
+    let first = true;
+    Object.entries(names).forEach(([key,count])=>{
+      const [nombre, empresa] = key.split('|');
+      recRows.push(`<tr><td>${first ? rut : ''}</td><td>${nombre}</td><td>${empresa}</td><td>${count}</td></tr>`);
+      first = false;
+    });
+  });
+  tblRec.innerHTML = recRows.join('') || '<tr><td colspan="4" class="no-data">No hay datos</td></tr>';
+
+  const today = registros.filter(isToday);
+  renderHoySection('PRESTAMO', 'barPrestamosDia', 'tblPrestamosDia', today, r=>[r.nombre,r.rut,r.empresa,r.credencial]);
+  renderHoySection('VISITA', 'barVisitasDia', 'tblVisitasDia', today, r=>[r.nombre,r.rut,r.referencia,r.credencial]);
+  renderHoySection('CONTRATISTA', 'barContratistasDia', 'tblContratistasDia', today, r=>[r.nombre,r.rut,r.empresa,r.referencia,r.credencial]);
+  renderHoySection('ONBOARDING', 'barOnboardingDia', 'tblOnboardingDia', today, r=>[r.nombre,r.rut,r.empresa,r.credencial]);
+}
+
+function renderHoySection(tipo, canvasId, tableId, today, rowMapper){
+  const rows = today.filter(r=>r.tipo===tipo);
+  const entradaCount = rows.filter(r=>r.entradaTS).length;
+  const salidaCount = rows.filter(r=>r.salidaTS).length;
+  destroyChart(canvasId);
+  chartRefs[canvasId] = new Chart(document.getElementById(canvasId), {
+    type:'bar',
+    data:{ labels:['ENTRADA','SALIDA'], datasets:[{ data:[entradaCount, salidaCount], backgroundColor:['#5B9BD5','#5B9BD5'] }]},
+    options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}} }
+  });
+  const tbody = document.querySelector('#'+tableId+' tbody');
+  if(rows.length===0){
+    const cols = rowMapper({nombre:'',rut:'',empresa:'',referencia:'',credencial:''}).length + 2;
+    tbody.innerHTML = `<tr><td colspan="${cols}" class="no-data">No hay datos</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r=>{
+    const fields = rowMapper(r).map(v=>v||'');
+    const salida = r.salidaTS ? '1' : '';
+    const entrada = r.entradaTS ? '1' : '';
+    return `<tr>${fields.map(f=>`<td>${f}</td>`).join('')}<td>${salida}</td><td>${entrada}</td></tr>`;
+  }).join('');
+}
+
+/* ================= CSV EXPORT ================= */
+function exportCSV(){
+  const headers = ['Tipo','Movimiento','Nombre','RUT','Empresa','Referencia','Credencial','Fecha Salida','Fecha Entrada','Estado'];
+  const lines = [headers.join(',')];
+  registros.forEach(r=>{
+    lines.push([
+      TIPO_LABEL[r.tipo], r.salidaTS && r.entradaTS ? 'SALIDA+ENTRADA' : (r.salidaTS ? 'SALIDA' : 'ENTRADA'),
+      r.nombre, r.rut, r.empresa, r.referencia, r.credencial,
+      r.salidaTS ? new Date(r.salidaTS).toLocaleString('es-CL') : '',
+      r.entradaTS ? new Date(r.entradaTS).toLocaleString('es-CL') : '',
+      r.estado
+    ].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'registro_credenciales_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ================= TOAST ================= */
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+/* ================= INIT ================= */
+function initDateRange(){
+  const end = new Date();
+  const start = new Date(); start.setDate(start.getDate()-2);
+  document.getElementById('rangeEnd').value = end.toISOString().slice(0,10);
+  document.getElementById('rangeStart').value = start.toISOString().slice(0,10);
+}
+
+load();
+initDateRange();
+refreshCredDropdowns();
+renderDashboard();
+</script>
+</body>
+</html>

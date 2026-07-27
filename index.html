@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -104,6 +104,18 @@
   .toast{ position:fixed;bottom:20px;right:20px;background:var(--ikea-blue);color:white; padding:12px 20px;border-radius:8px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.3); z-index:1000;opacity:0;transition:opacity .3s;pointer-events:none; }
   .toast.show{opacity:1;}
   .cred-badge{font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--ikea-yellow);}
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;
+    justify-content:center;z-index:1200;
+  }
+  .modal-box{
+    background:white;border-radius:12px;padding:22px;width:320px;max-width:90vw;
+    box-shadow:0 10px 30px rgba(0,0,0,.4);
+  }
+  .modal-box h3{margin-top:0;color:var(--ikea-blue-dark);font-size:16px;}
+  .modal-box input{
+    width:100%;padding:10px;border:1.5px solid #ccc;border-radius:6px;font-size:15px;letter-spacing:2px;
+  }
 </style>
 </head>
 <body>
@@ -342,6 +354,18 @@
 
 </main>
 
+<div class="modal-overlay hidden" id="modalClaveOverlay">
+  <div class="modal-box">
+    <h3>🔒 Clave de seguridad del Google Sheet</h3>
+    <p style="font-size:13px;color:#555;margin-bottom:10px;">Esta clave protege tu planilla — debe ser confidencial y coincidir exactamente con <code>CLAVE_SEGURIDAD</code> en tu Apps Script.</p>
+    <input type="password" id="modalClaveInput" placeholder="Ingresa la clave" autocomplete="new-password" onkeydown="if(event.key==='Enter')guardarModalClave()">
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button onclick="guardarModalClave()" class="submit-btn" style="flex:1;">Guardar</button>
+      <button onclick="cerrarModalClave()" style="flex:1;background:#eee;border:none;border-radius:8px;font-weight:700;cursor:pointer;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -382,11 +406,26 @@ function configurarSheetUrl(){
   localStorage.setItem(SHEET_URL_KEY, url.trim());
 
   if(url.trim()){
-    const claveActual = getSheetClave();
-    const clave = prompt('Clave de seguridad para proteger la planilla (debe ser la misma que pusiste en el Apps Script). Ej: 359080', claveActual || '359080');
-    if(clave !== null) localStorage.setItem(SHEET_CLAVE_KEY, clave.trim());
+    abrirModalClave();
+  } else {
+    showToast('Sincronización con Google Sheet desactivada');
   }
-  showToast(url.trim() ? '✔ Google Sheet configurado' : 'Sincronización con Google Sheet desactivada');
+}
+
+function abrirModalClave(){
+  document.getElementById('modalClaveInput').value = '';
+  document.getElementById('modalClaveOverlay').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('modalClaveInput').focus(), 50);
+}
+function cerrarModalClave(){
+  document.getElementById('modalClaveOverlay').classList.add('hidden');
+}
+function guardarModalClave(){
+  const clave = document.getElementById('modalClaveInput').value.trim();
+  if(!clave){ showToast('⚠ Debes ingresar una clave'); return; }
+  localStorage.setItem(SHEET_CLAVE_KEY, clave);
+  cerrarModalClave();
+  showToast('✔ Google Sheet configurado');
 }
 
 function syncToSheet(params){

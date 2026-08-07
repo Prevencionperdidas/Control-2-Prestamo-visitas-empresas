@@ -143,6 +143,7 @@
   <div class="toolbar">
     <button onclick="exportCSV()">⬇️ Enlace Data Base (Exportar CSV)</button>
     <button onclick="configurarSheetUrl()">⚙️ Configurar Google Sheet</button>
+    <button onclick="cargarDesdeSheet()">🔄 Sincronizar desde Google Sheet</button>
     <span id="rangeLabel" style="font-weight:700;color:var(--ikea-blue-dark);"></span>
   </div>
 
@@ -421,7 +422,7 @@ function guardarModalClave(){
   if(!clave){ showToast('⚠ Debes ingresar una clave'); return; }
   localStorage.setItem(SHEET_CLAVE_KEY, clave);
   cerrarModalClave();
-  showToast('✔ Google Sheet configurado');
+  cargarDesdeSheet();
 }
 
 function syncToSheet(params){
@@ -443,6 +444,41 @@ function syncRecord(r){
   });
 }
 function syncDelete(id){ syncToSheet({ action:'delete', id }); }
+
+/* ---- Traer los datos YA GUARDADOS en el Google Sheet hacia la app (vía JSONP) ---- */
+function cargarDesdeSheet(){
+  const base = getSheetUrl();
+  const clave = getSheetClave();
+  if(!base){ showToast('⚠ Primero configura la URL del Google Sheet'); return; }
+  if(!clave){ showToast('⚠ Falta la clave de seguridad'); return; }
+
+  const cbName = 'sheetCb_' + Date.now();
+  window[cbName] = function(resp){
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+    if(!resp || resp.ok !== true){
+      showToast('⚠ ' + (resp && resp.error ? resp.error : 'No se pudo leer el Google Sheet'));
+      return;
+    }
+    registros = resp.registros || [];
+    save();
+    showToast('✔ Datos cargados desde Google Sheet (' + registros.length + ' registros)');
+    refreshCredDropdowns();
+    if(!document.getElementById('tab-pendientes').classList.contains('hidden')) renderPending();
+    if(!document.getElementById('tab-dashboard').classList.contains('hidden')) renderDashboard();
+  };
+
+  const qs = 'action=getData&clave=' + encodeURIComponent(clave) + '&callback=' + cbName;
+  const script = document.createElement('script');
+  script.src = base + (base.indexOf('?')>-1 ? '&' : '?') + qs;
+  script.onerror = function(){
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+    showToast('⚠ No se pudo conectar con el Google Sheet');
+  };
+  document.body.appendChild(script);
+}
+
 
 /* ================= TABS ================= */
 function switchTab(tab){
@@ -803,6 +839,7 @@ load();
 initDateRange();
 refreshCredDropdowns();
 renderDashboard();
+if(getSheetUrl() && getSheetClave()) cargarDesdeSheet();
 </script>
 </body>
 </html>
